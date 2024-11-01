@@ -1,0 +1,13 @@
+{
+    "name": "mysql-node-api",
+    "version": "1.0.0",
+    "description": "Ein einfacher Node.js-Server mit MySQL",
+    "main": "app.js",
+    "scripts": {
+        "start": "node app.js"
+    },
+    "dependencies": {
+        "express": "^4.17.1",
+        "mysql2": "^2.3.3"
+    }
+}
