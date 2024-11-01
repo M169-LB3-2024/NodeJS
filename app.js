@@ -1,29 +1,32 @@
 const express = require('express');
-const mongoose = require('mongoose');
+const mysql = require('mysql2');
 const app = express();
 const port = 3000;
 
-// MongoDB configuration
-const dbUri = 'mongodb://mongo:27017/testdb'; // Use the Docker Compose service name "mongo" for MongoDB
+// MySQL configuration
+const dbConfig = {
+    host: 'db',           // The Docker Compose service name for MySQL
+    user: 'root',
+    password: 'password',
+    database: 'testdb',
+    port: 3306,
+    waitForConnections: true,
+    connectionLimit: 10,  // Max number of connections in the pool
+    queueLimit: 0         // Unlimited queueing of connection requests
+};
 
-// Connect to MongoDB with Mongoose
-mongoose.connect(dbUri, { useNewUrlParser: true, useUnifiedTopology: true })
-    .then(() => console.log('Connected to MongoDB'))
-    .catch(err => console.error('Failed to connect to MongoDB:', err));
+// Create a MySQL connection pool
+const pool = mysql.createPool(dbConfig);
 
-// Define a User schema
-const userSchema = new mongoose.Schema({
-    name: String,
-    email: String
-});
+// Route to get all users from the "users" table
+app.get('/users', (req, res) => {
+    const query = 'SELECT * FROM users';
 
-const User = mongoose.model('User', userSchema);
-
-// Route to get all users from the "users" collection
-app.get('/users', async (req, res) => {
-    try {
-        const users = await User.find();
-        if (users.length === 0) {
+    pool.query(query, (err, results) => {
+        if (err) {
+            console.error('Error executing query:', err);
+            res.status(500).send('Error executing query');
+        } else if (results.length === 0) {
             // Display a success message if no users are found
             res.send(`
                 <html>
@@ -36,16 +39,16 @@ app.get('/users', async (req, res) => {
                         </style>
                     </head>
                     <body>
-                        <h1>Congratulations! 🎉</h1>
-                        <p>You successfully connected to the MongoDB database!</p>
-                        <p>No users found in the database, but everything is set up correctly.</p>
+                        <h1>Gratuliere  🎉</h1>
+                        <p>You successfully connected to the MySQL database!</p>
+                        <p>Erstelle noch deine Person auf der Datenbank</p>
                     </body>
                 </html>
             `);
         } else {
             // Display the users in an HTML table
-            let tableRows = users.map(user => 
-                `<tr><td>${user._id}</td><td>${user.name}</td><td>${user.email}</td></tr>`
+            let tableRows = results.map(user => 
+                `<tr><td>${user.id}</td><td>${user.surname}</td><td>${user.lastname}</td></tr>`
             ).join('');
 
             res.send(`
@@ -62,19 +65,18 @@ app.get('/users', async (req, res) => {
                     </head>
                     <body>
                         <h1>User List</h1>
-                        <p>Here are the users currently in the database:</p>
+                        <p>Das sind alle User in der DB:</p>
                         <table>
-                            <tr><th>ID</th><th>Name</th><th>Email</th></tr>
+                            <tr><th>ID</th><th>Surname</th><th>Lastname</th></tr>
                             ${tableRows}
                         </table>
+                        <h1>Gratuliere 🎉</h1>
+                        <p>Deine API funktioniert!</p>
                     </body>
                 </html>
             `);
         }
-    } catch (err) {
-        console.error('Error fetching users:', err);
-        res.status(500).send('Error fetching users');
-    }
+    });
 });
 
 // Start the Express server
